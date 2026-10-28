@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+backend/test_regulens.db
+backend/regulens.db-shm
+backend/regulens.db-wal
+storage/edge_profile/
+backend/storage/edge_profile/
+**/edge_profile/**
+**/Cache/**
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+.npm
+.eslintcache
+
+# Tests & Logs
+*.log
+.pytest_cache/
+tests/
+backend/tests/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
