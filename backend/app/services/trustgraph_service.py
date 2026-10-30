@@ -8,6 +8,12 @@ from app.models.workflow import OfficerReview, WorkflowDecision
 from app.models.deficiency import ApplicationDeficiency, DeficiencyStatus
 from app.models.duplicate import DuplicateRecord, DuplicateStatus
 from app.models.rule import ChecklistRequirement
+from app.models.workflow_routing import ApplicationWorkflowRouting, StageMovementHistory
+from app.models.obligation import Obligation, ClockInterval
+from app.models.evc import EVCSchedule
+from app.models.undertaking import TimeBoundUndertaking
+from app.models.document_validity import DocumentValidityRecord
+from app.models.audit import AuditEvent
 
 
 class TrustGraphService:
@@ -443,6 +449,138 @@ class TrustGraphService:
                 }
             )
             add_edge(dec_node_id, app_node_id, "RESOLVED_BY", "DECISION_FINAL", 1.0)
+
+        # =========================================================================
+        # TIER 6: STATUTORY WORKFLOW ROUTING & CURRENT PROCESSING STAGE (PS 26262)
+        # =========================================================================
+        routing = self.db.query(ApplicationWorkflowRouting).filter(
+            ApplicationWorkflowRouting.application_id == application_id
+        ).first()
+        if routing:
+            route_node_id = f"route_{routing.id}"
+            add_node(
+                node_id=route_node_id,
+                label=f"Route: {routing.route_type.replace('_', ' ')}",
+                node_type="WORKFLOW_ROUTE",
+                tier=1,
+                status="ACTIVE",
+                metadata={
+                    "route_type": routing.route_type,
+                    "reason": routing.routing_reason,
+                    "committee": routing.assigned_committee
+                }
+            )
+            add_edge(app_node_id, route_node_id, "ROUTED_THROUGH", "WORKFLOW_EDGE", 1.0)
+
+            stage_node_id = f"stage_{routing.id}_{routing.current_stage}"
+            add_node(
+                node_id=stage_node_id,
+                label=f"Stage: {routing.current_stage.replace('_', ' ')}",
+                node_type="WORKFLOW_STAGE",
+                tier=2,
+                status=routing.processing_status,
+                metadata={
+                    "stage": routing.current_stage,
+                    "entry_at": routing.stage_entry_at.isoformat() if routing.stage_entry_at else None,
+                    "status": routing.processing_status
+                }
+            )
+            add_edge(route_node_id, stage_node_id, "CURRENT_STAGE", "STAGE_PROGRESSION", 1.0)
+
+        # =========================================================================
+        # TIER 7: PROMISE LEDGER OBLIGATIONS & DETERMINISTIC CLOCKS (PS 26262)
+        # =========================================================================
+        obligations = self.db.query(Obligation).filter(
+            Obligation.application_id == application_id
+        ).all()
+        for obl in obligations:
+            obl_node_id = f"obl_{obl.id}"
+            add_node(
+                node_id=obl_node_id,
+                label=f"Obligation: {obl.obligation_no}",
+                node_type="OBLIGATION",
+                tier=3,
+                status=obl.status,
+                metadata={
+                    "obligation_no": obl.obligation_no,
+                    "title": obl.title,
+                    "type": obl.obligation_type,
+                    "responsible_entity": obl.responsible_entity,
+                    "responsible_role": obl.responsible_role,
+                    "due_date": obl.due_date.isoformat(),
+                    "clock_state": obl.clock_state,
+                    "aph_clause": obl.aph_clause,
+                    "escalation_level": obl.escalation_level
+                }
+            )
+            add_edge(app_node_id, obl_node_id, "MANDATES_OBLIGATION", "REGULATORY_OBLIGATION", 1.0)
+
+        # =========================================================================
+        # TIER 8: EVC INSPECTIONS & TIME-BOUND UNDERTAKINGS (PS 26262)
+        # =========================================================================
+        evcs = self.db.query(EVCSchedule).filter(
+            EVCSchedule.application_id == application_id
+        ).all()
+        for evc in evcs:
+            evc_node_id = f"evc_{evc.id}"
+            add_node(
+                node_id=evc_node_id,
+                label=f"EVC: {evc.evc_no} ({evc.status})",
+                node_type="EVC_INSPECTION",
+                tier=4,
+                status=evc.status,
+                metadata={
+                    "evc_no": evc.evc_no,
+                    "status": evc.status,
+                    "region": evc.region,
+                    "scheduled_date": evc.scheduled_date.isoformat() if evc.scheduled_date else None,
+                    "conflict_check_passed": evc.conflict_check_passed,
+                    "recommendation": evc.report_recommendation
+                }
+            )
+            add_edge(app_node_id, evc_node_id, "REQUIRES_EVC_INSPECTION", "PHYSICAL_VERIFICATION", 1.0)
+
+        undertakings = self.db.query(TimeBoundUndertaking).filter(
+            TimeBoundUndertaking.application_id == application_id
+        ).all()
+        for ut in undertakings:
+            ut_node_id = f"ut_{ut.id}"
+            add_node(
+                node_id=ut_node_id,
+                label=f"Undertaking: {ut.undertaking_no}",
+                node_type="TIME_BOUND_UNDERTAKING",
+                tier=4,
+                status=ut.status,
+                metadata={
+                    "undertaking_no": ut.undertaking_no,
+                    "condition": ut.condition_title,
+                    "due_date": ut.due_date.isoformat(),
+                    "status": ut.status,
+                    "aph_clause": ut.aph_clause
+                }
+            )
+            add_edge(app_node_id, ut_node_id, "SUBJECT_TO_UNDERTAKING", "CONDITIONAL_COVENANT", 1.0)
+
+        # =========================================================================
+        # TIER 9: CRYPTOGRAPHIC AUDIT LEDGER SEAL (SHA-256 HASH CHAIN)
+        # =========================================================================
+        latest_audit = self.db.query(AuditEvent).order_by(AuditEvent.id.desc()).first()
+        if latest_audit:
+            audit_node_id = f"audit_ledger_{app.id}"
+            add_node(
+                node_id=audit_node_id,
+                label=f"Audit Block #{latest_audit.id} (SHA-256)",
+                node_type="AUDIT_BLOCK",
+                tier=5,
+                status="SEALED",
+                metadata={
+                    "latest_hash": latest_audit.entry_hash,
+                    "previous_hash": latest_audit.previous_hash,
+                    "total_events": self.db.query(AuditEvent).count(),
+                    "algorithm": "SHA-256 Hash Chain"
+                }
+            )
+            add_edge(app_node_id, audit_node_id, "SEALED_IN_AUDIT_LEDGER", "CRYPTOGRAPHIC_PROVENANCE", 1.0)
 
         # =========================================================================
         # CONTRADICTORY CLAIMS & DISCREPANCIES COMPUTATION

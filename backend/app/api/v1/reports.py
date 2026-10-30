@@ -149,3 +149,58 @@ def export_application_pdf(
         headers={"Content-Disposition": f"attachment; filename=ReguLens_Scrutiny_{app.reference_no}.pdf"}
     )
 
+
+# =============================================================================
+# SIH 26262: 11 SPECIALIZED COMPLIANCE & PENDENCY REPORTS
+# =============================================================================
+
+@router.get("/compliance-reports")
+def list_compliance_reports():
+    return [
+        {"key": "pendency_ageing", "title": "Application Pendency & Ageing Report", "category": "Workload"},
+        {"key": "route_distribution", "title": "Workflow Route Distribution Report", "category": "Routing"},
+        {"key": "stage_bottlenecks", "title": "Stage-wise Bottleneck Analysis Report", "category": "Performance"},
+        {"key": "regional_pendency", "title": "Regional Pendency & Workload Report", "category": "Regional"},
+        {"key": "officer_workload", "title": "Officer-wise Workload & Performance Report", "category": "Performance"},
+        {"key": "obligations_status", "title": "Promise Ledger / Obligation Status Report", "category": "Obligations"},
+        {"key": "evc_tracking", "title": "EVC Inspection Tracking Report", "category": "Inspection"},
+        {"key": "undertakings_compliance", "title": "Time-Bound Undertaking Compliance Report", "category": "Undertakings"},
+        {"key": "document_validity", "title": "Document Expiry & Lease Monitoring Report", "category": "Documents"},
+        {"key": "escalation_breaches", "title": "Alert Escalation & Statutory Breach Report", "category": "Escalations"},
+        {"key": "audit_chain_integrity", "title": "Cryptographic Audit Chain Verification Report", "category": "Security & Audit"},
+    ]
+
+
+@router.get("/compliance-reports/{report_key}")
+def get_compliance_report(
+    report_key: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    try:
+        from app.services.compliance_reports_service import ComplianceReportsService
+        data = ComplianceReportsService.get_report_data(db, report_key)
+        return data
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/compliance-reports/{report_key}/export.csv")
+def export_compliance_report_csv(
+    report_key: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    try:
+        from app.services.compliance_reports_service import ComplianceReportsService
+        csv_text = ComplianceReportsService.generate_csv_for_report(db, report_key)
+        today_str = datetime.utcnow().strftime("%Y-%m-%d")
+        return Response(
+            content=csv_text,
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="regulens_{report_key}_{today_str}.csv"'}
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+

@@ -345,4 +345,31 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+
+  // Generic REST helpers for PS 26262 modules
+  get: <T = any>(endpoint: string, config?: any) => {
+    if (config?.responseType === "blob") {
+      const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
+      return fetch(url, { headers: getAuthHeader() }).then(async (res) => {
+        if (!res.ok) throw new Error(`API Error: ${res.status}`);
+        return { data: await res.blob() };
+      });
+    }
+    return apiRequest<T>(endpoint, { method: "GET" }).then((data) => ({ data }));
+  },
+
+  post: <T = any>(endpoint: string, body?: any) =>
+    apiRequest<T>(endpoint, {
+      method: "POST",
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }).then((data) => ({ data })),
+
+  patch: <T = any>(endpoint: string, body?: any) =>
+    apiRequest<T>(endpoint, {
+      method: "PATCH",
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }).then((data) => ({ data })),
 };
+
+export default api;
+

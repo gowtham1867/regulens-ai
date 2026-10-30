@@ -15,6 +15,14 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     Base.metadata.create_all(bind=engine)
+    try:
+        from app.database import SessionLocal
+        from app.services.scheduler import init_default_scheduler_jobs
+        db = SessionLocal()
+        init_default_scheduler_jobs(db)
+        db.close()
+    except Exception as e:
+        logger.warning(f"Could not init default scheduler jobs: {e}")
     yield
 
 

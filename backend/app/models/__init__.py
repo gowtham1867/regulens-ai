@@ -17,6 +17,28 @@ from app.models.notification import Notification
 from app.models.deficiency import ApplicationDeficiency, DeficiencyType, DeficiencyStatus
 from app.models.duplicate import DuplicateRecord, DuplicateMatchType, DuplicateStatus
 
+# Enhancements for SIH Problem Statement 26262
+from app.models.obligation import (
+    Obligation,
+    ObligationType,
+    ObligationStatus,
+    ClockState,
+    ResponsibleRole,
+    ObligationEventHistory,
+    ClockInterval,
+)
+from app.models.workflow_routing import (
+    ApplicationWorkflowRouting,
+    ApplicationRouteType,
+    WorkflowStage,
+    StageMovementHistory,
+)
+from app.models.evc import EVCSchedule, EVCStatus, EVCExpert
+from app.models.undertaking import TimeBoundUndertaking, UndertakingStatus
+from app.models.document_validity import DocumentValidityRecord, DocumentValidityStatus
+from app.models.admin_config import HolidayCalendar, WorkflowRouteTemplate, SystemAuditBlock
+from app.models.scheduler_job import SchedulerJob
+
 __all__ = [
     "User",
     "UserRole",
@@ -62,5 +84,27 @@ __all__ = [
     "DuplicateRecord",
     "DuplicateMatchType",
     "DuplicateStatus",
+    # SIH 26262 Additions
+    "Obligation",
+    "ObligationType",
+    "ObligationStatus",
+    "ClockState",
+    "ResponsibleRole",
+    "ObligationEventHistory",
+    "ClockInterval",
+    "ApplicationWorkflowRouting",
+    "ApplicationRouteType",
+    "WorkflowStage",
+    "StageMovementHistory",
+    "EVCSchedule",
+    "EVCStatus",
+    "EVCExpert",
+    "TimeBoundUndertaking",
+    "UndertakingStatus",
+    "DocumentValidityRecord",
+    "DocumentValidityStatus",
+    "HolidayCalendar",
+    "WorkflowRouteTemplate",
+    "SystemAuditBlock",
+    "SchedulerJob",
 ]
-

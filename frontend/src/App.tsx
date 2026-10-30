@@ -19,6 +19,14 @@ import { ClarificationsPage } from "./pages/ClarificationsPage";
 import { AuditTrailPage } from "./pages/AuditTrailPage";
 import { EvaluationBenchmarkPage } from "./pages/EvaluationBenchmarkPage";
 
+// Enhancements for SIH Problem Statement 26262
+import { ObligationsPage } from "./pages/ObligationsPage";
+import { EVCManagementPage } from "./pages/EVCManagementPage";
+import { UndertakingsPage } from "./pages/UndertakingsPage";
+import { DocumentValidityPage } from "./pages/DocumentValidityPage";
+import { ComplianceReportsPage } from "./pages/ComplianceReportsPage";
+import { AdminWorkflowConfigPage } from "./pages/AdminWorkflowConfigPage";
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
@@ -84,6 +92,23 @@ export default function App() {
               <Route path="verification" element={<VerificationPage />} />
               <Route path="rules" element={<RulesPage />} />
               <Route path="clarifications" element={<ClarificationsPage />} />
+              
+              {/* SIH PS 26262 Module Routes */}
+              <Route path="obligations" element={<ObligationsPage />} />
+              <Route path="my-obligations" element={<ObligationsPage />} />
+              <Route path="evc" element={<EVCManagementPage />} />
+              <Route path="undertakings" element={<UndertakingsPage />} />
+              <Route path="document-validity" element={<DocumentValidityPage />} />
+              <Route path="reports" element={<ComplianceReportsPage />} />
+
+              <Route
+                path="admin/workflow-config"
+                element={
+                  <ProtectedRoute allowedRoles={["AICTE_OFFICER", "ADMINISTRATOR"]}>
+                    <AdminWorkflowConfigPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="audit"
                 element={
